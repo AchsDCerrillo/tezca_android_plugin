@@ -48,35 +48,90 @@ Route/Screen ─▶ ViewModel ─▶ UseCase ─▶ Repository ─┬─▶ Remo
 
 ## Install
 
+Pick a **scope** first — it decides who gets the skills and where they're recorded:
+
+| Scope | Who gets the skills | Where it's recorded | Commit it? |
+|---|---|---|---|
+| **user** | you, in every project on this machine | Claude: `~/.claude/settings.json`; other agents: your home folder | no |
+| **project** | everyone who clones the project | Claude: `<project>/.claude/settings.json`; other agents: `<project>/.agents/skills/` | yes — that's how the team gets it |
+| **local** (Claude Code only) | only you, only in this project | `<project>/.claude/settings.local.json` (git-ignored) | no |
+
 ### Claude Code (plugin, from the git marketplace)
+Two steps per scope: declare the marketplace, then install the plugin. Use the **same** `--scope` for both.
+
+**User scope** — available in all your projects:
 ```bash
-claude plugin marketplace add https://github.com/AchsDCerrillo/tezca_android_plugin.git
-claude plugin install tezca-android-development@tezca-android-marketplace                  # user scope (default)
-claude plugin install tezca-android-development@tezca-android-marketplace --scope project  # this project only, shared via .claude/settings.json
+claude plugin marketplace add https://github.com/AchsDCerrillo/tezca_android_plugin.git --scope user
+claude plugin install tezca-android-development@tezca-android-marketplace --scope user
 ```
-Or inside Claude Code:
+
+**Project scope** — shared with the team through git:
+```bash
+cd ~/code/my-android-app
+claude plugin marketplace add https://github.com/AchsDCerrillo/tezca_android_plugin.git --scope project
+claude plugin install tezca-android-development@tezca-android-marketplace --scope project
+git add .claude/settings.json && git commit -m "Add tezca-android-development plugin"
 ```
-/plugin marketplace add AchsDCerrillo/tezca_android_plugin
-/plugin install tezca-android-development@tezca-android-marketplace
+Teammates who open the project in Claude Code are asked to trust the marketplace and install the plugin.
+
+**Local scope** — only you, only this project (nothing to commit):
+```bash
+cd ~/code/my-android-app
+claude plugin marketplace add https://github.com/AchsDCerrillo/tezca_android_plugin.git --scope local
+claude plugin install tezca-android-development@tezca-android-marketplace --scope local
 ```
-Skills show up as `/tezca-android-development:start-android`, `/tezca-android-development:make-screen`, … and Claude also uses them automatically when a request matches. Update with `claude plugin marketplace update tezca-android-marketplace`, then restart Claude Code.
+
+Inside Claude Code you can do the same with `/plugin marketplace add AchsDCerrillo/tezca_android_plugin` and `/plugin install tezca-android-development@tezca-android-marketplace` (the `/plugin` menu asks for the scope).
+
+Skills show up as `/tezca-android-development:start-android`, `/tezca-android-development:make-screen`, … and Claude also uses them automatically when a request matches.
+
+| Task | Command (use the scope you installed with) |
+|---|---|
+| Check it's installed | `claude plugin list` |
+| Update | `claude plugin marketplace update tezca-android-marketplace`, then restart Claude Code |
+| Uninstall | `claude plugin uninstall tezca-android-development@tezca-android-marketplace --scope <user\|project\|local>` |
+| Remove the marketplace | `claude plugin marketplace remove tezca-android-marketplace` |
 
 ### Codex, Cursor, Antigravity, Gemini CLI, OpenCode, Copilot, OpenClaw (and Claude without the plugin)
+Clone once, then run `install-skills.sh` with the scope you want. Run it with no arguments for an interactive prompt.
 ```bash
 git clone https://github.com/AchsDCerrillo/tezca_android_plugin.git && cd tezca_android_plugin
-./install-skills.sh                                                           # interactive
-./install-skills.sh --scope project --agents all --project-dir ~/code/my-android-app
-./install-skills.sh --scope user --agents codex,gemini,antigravity
-./install-skills.sh --scope user --agents codex --prefix android-             # alongside tezca-kmp-development
-./install-skills.sh --scope user --agents openclaw --skills-dir ~/.openclaw/skills
-./install-skills.sh --list-agents
-git pull && ./install-skills.sh --scope user --agents codex --yes             # update later
-./install-skills.sh --uninstall --scope project --agents all --project-dir .
+./install-skills.sh --list-agents          # codex, opencode, gemini, antigravity, copilot, cursor, openclaw, claude, claude-plugin
 ```
+
+**User scope** — every project on this machine:
+```bash
+./install-skills.sh --scope user --agents codex,opencode,copilot,gemini,antigravity
+./install-skills.sh --scope user --agents openclaw --skills-dir ~/.openclaw/skills   # OpenClaw needs its folder
+```
+Cursor has no user-level skills folder: install it at project scope.
+
+**Project scope** — one project, shared through git:
+```bash
+./install-skills.sh --scope project --agents all --project-dir ~/code/my-android-app
+cd ~/code/my-android-app && git add .agents/skills && git commit -m "Add tezca-android skills"
+```
+`all` = Claude plugin + Codex, OpenCode, Gemini, Antigravity, Copilot and Cursor (they all read `.agents/skills/`, so one copy serves them).
+
+**Preview, update, uninstall** (same `--scope`/`--agents` you installed with):
+```bash
+./install-skills.sh --scope user --agents codex --dry-run                     # show what would change
+git pull && ./install-skills.sh --scope user --agents codex --yes             # update
+./install-skills.sh --uninstall --scope user --agents codex                   # remove
+./install-skills.sh --uninstall --scope project --agents all --project-dir ~/code/my-android-app
+```
+
+**Next to tezca-kmp-development** (same folder): add `--prefix android-`, e.g. `./install-skills.sh --scope user --agents codex --prefix android-`.
+
+Where the skills land:
+
 | Agent | Project scope | User scope |
 |---|---|---|
 | Codex, OpenCode, Copilot, Cursor, Gemini, Antigravity | `<project>/.agents/skills/` | Codex / OpenCode / Copilot: `~/.agents/skills`; Gemini: `~/.gemini/skills`; Antigravity: `~/.gemini/config/skills`; Cursor: project only |
-| Claude Code (plain folders) | `<project>/.claude/skills/` | `~/.claude/skills/` |
+| Claude Code (plain folders, `--agents claude`) | `<project>/.claude/skills/` | `~/.claude/skills/` |
+| OpenClaw | `--skills-dir` | `--skills-dir` |
+
+Restart the agent after installing or updating so it picks up the skills. Gemini CLI may need Agent Skills enabled in its settings.
 
 How the installer behaves:
 - It only replaces folders it installed itself (each carries a `.tezca-android-install` marker) and never edits agent config files; `claude-plugin` goes through the official `claude plugin` CLI.
