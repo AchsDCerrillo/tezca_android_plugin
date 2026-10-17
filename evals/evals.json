@@ -1,0 +1,122 @@
+{
+  "plugin": "tezca-android-development",
+  "notes": "End-to-end prompts used to validate the skills. Each runs against a scratch folder (an Android Studio 'Empty Activity' project or an empty dir with a Gradle wrapper + local.properties). Assertions are objectively checkable from the resulting files and Gradle output.",
+  "evals": [
+    {
+      "id": 1,
+      "skill": "start-android",
+      "prompt": "Set up this empty Android project for me. It's a full native app called Acme Shop, package com.acme.shop, our API is api.acme.com/v1/ (dev: dev.api.acme.com/v1/). Use Retrofit. I want CI too.",
+      "expected_output": "Multi-module project rendered by scaffold.py in native+retrofit mode with CI, building and testing green.",
+      "files": [],
+      "assertions": [
+        ".tezca-android.json has mode=native, network=retrofit, basePackage=com.acme.shop",
+        "settings.gradle.kts includes :app, :core:common, :core:ui, :core:navigation, :core:testing, :core:network, :core:database, :core:datastore and the tezca-android:features marker",
+        "build-logic contains tezca.android.application/library/compose/hilt/room/feature convention plugins",
+        "app/build.gradle.kts defines dev and prod flavors with a BASE_URL buildConfigField",
+        "no module applies kotlin-kapt",
+        ".github/workflows/ci.yml, dev.yml, release.yml exist",
+        "./gradlew :app:assembleDevDebug testDevDebugUnitTest testDebugUnitTest :app:lintDevDebug succeeds"
+      ]
+    },
+    {
+      "id": 2,
+      "skill": "start-android",
+      "prompt": "prepare the project, this app will consume our KMP sdk com.deepdecibels:sdk:1.4.0 from https://maven.pkg.github.com/AchsDCerrillo/deepdecibelsKMP, it only exposes use cases (get them with SetupDi.getUseCase<T>()). package com.codetecuhtli.ddlite",
+      "expected_output": "kmp-sdk mode project with :core:sdk, SDK repo with env credentials, minSdk raised to the SDK's, building green.",
+      "files": [],
+      "assertions": [
+        ".tezca-android.json has mode=kmp-sdk and sdk.coordinates=com.deepdecibels:sdk:1.4.0",
+        "settings.gradle.kts declares the SDK maven repo with GPR_USER/GPR_API_KEY credentials",
+        "there is no :core:network, :core:database or :core:datastore module",
+        "core/sdk/build.gradle.kts has api(libs.sdk)",
+        "android-minSdk in the catalog is >= 29 (the SDK's minSdk)",
+        "SdkInitializer calls the SDK bootstrap instead of the placeholder comment",
+        "./gradlew :app:assembleDevDebug succeeds"
+      ]
+    },
+    {
+      "id": 3,
+      "skill": "new-feature",
+      "prompt": "create the onboarding module, it will have registration, login and then it should hand off to home",
+      "expected_output": ":feature:onboarding created by new_feature.py and registered; hand-off modelled as a callback.",
+      "files": [],
+      "assertions": [
+        "feature/onboarding/build.gradle.kts applies libs.plugins.tezca.android.feature",
+        "settings.gradle.kts includes :feature:onboarding below the tezca-android:features marker",
+        "app/build.gradle.kts has implementation(projects.feature.onboarding)",
+        "AppNavDisplay.kt calls onboardingEntries(navigator = navigator",
+        "feature/onboarding has res/values/strings.xml and res/values-es/strings.xml",
+        "no feature module depends on another feature module",
+        "./gradlew :app:assembleDevDebug succeeds"
+      ]
+    },
+    {
+      "id": 4,
+      "skill": "make-screen",
+      "prompt": "make-screen login: email + password, POST auth/login {email,password} -> {user_id, access_token, refresh_token}. keep the user logged in, no refresh endpoint. after login go to the orders list",
+      "expected_output": "Login screen end to end: public API client, session in :core:session with TokenProvider, remote-only repository, LoginUseCase, form ViewModel with events, Route/Screen, strings in values + values-es.",
+      "files": [],
+      "assertions": [
+        "a :core:session module exists with SessionPreferencesDataSource and a TokenProvider binding",
+        "the login API is provided by a Retrofit/HttpClient without the auth interceptor (qualified @PublicApi or equivalent)",
+        "a 401 from login is mapped to AppError.Domain(invalid_credentials) and shown with a feature string",
+        "LoginViewModel injects use cases only (no repository, no Context, no Dispatchers.*)",
+        "LoginScreen uses imePadding and has a @Preview",
+        "every new string key exists in values/strings.xml and values-es/strings.xml",
+        "./gradlew :app:assembleDevDebug :app:lintDevDebug succeeds"
+      ]
+    },
+    {
+      "id": 5,
+      "skill": "make-screen",
+      "prompt": "orders list + detail. GET orders?page= returns {items:[{id,number,status,total_cents,currency,notes,created_at}],page,total_pages}, GET orders/{id}. must work offline and have pull to refresh",
+      "expected_output": "Offline-first list/detail: Room entity/DAO/database, local+remote data sources, repository with SyncMetadataStore TTL, observe/refresh use cases, list ViewModel with stateIn + events, detail ViewModel via assisted NavKey, screens with PullToRefreshBox.",
+      "files": [],
+      "assertions": [
+        "OrderDao returns Flow for list reads and has a @Transaction replaceAll",
+        "the repository's observe function returns the local Flow and refresh uses SyncMetadataStore.isStale/markSynced",
+        "the detail ViewModel uses @HiltViewModel(assistedFactory = ...) with an @Assisted NavKey",
+        "the list screen uses PullToRefreshBox and collectAsStateWithLifecycle",
+        "feature/orders/schemas/ contains an exported Room schema",
+        "./gradlew :app:assembleDevDebug testDebugUnitTest succeeds"
+      ]
+    },
+    {
+      "id": 6,
+      "skill": "make-repository",
+      "prompt": "add a payments repository to the payments feature with getPlans and confirmPayment, don't do this offline",
+      "expected_output": "Remote-only repository (no Room), suspend DataResult functions.",
+      "files": [],
+      "assertions": [
+        "PaymentsRepositoryImpl has no local data source or DAO dependency",
+        "functions are suspend and return DataResult",
+        "the repository is bound with @Binds in the feature's Hilt module"
+      ]
+    },
+    {
+      "id": 7,
+      "skill": "add-tests",
+      "prompt": "add tests for the order list ViewModel, the orders repository and the orders DAO",
+      "expected_output": "Fake-based ViewModel and repository tests, Robolectric DAO test, all passing.",
+      "files": [],
+      "assertions": [
+        "OrderListViewModelTest uses MainDispatcherRule and Turbine",
+        "the repository test covers cache hit, stale refresh and refresh failure keeping cached data",
+        "the DAO test runs with @RunWith(AndroidJUnit4::class) on an in-memory database",
+        "./gradlew :feature:orders:testDebugUnitTest succeeds with >= 6 tests"
+      ]
+    },
+    {
+      "id": 8,
+      "skill": "android-quality-check",
+      "prompt": "audit /path/to/old-project before we publish it, I think it has problems",
+      "expected_output": "Prioritized P0/P1/P2 report with file:line evidence mapped to checklist ids, and an ordered fix plan; no code changed before approval.",
+      "files": [],
+      "assertions": [
+        "the report has P0, P1 and P2 sections and a 'What's already good' section",
+        "every finding cites a checklist id (e.g. [V4]) and a path:line",
+        "no files were modified"
+      ]
+    }
+  ]
+}

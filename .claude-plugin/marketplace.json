@@ -1,0 +1,16 @@
+{
+  "name": "tezca-android-marketplace",
+  "description": "Tezca native Android development plugin",
+  "owner": {
+    "name": "AchsDCerrillo",
+    "email": "achscerrillo@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "tezca-android-development",
+      "source": "./",
+      "description": "Skills to set up and grow native Android apps (Compose, Hilt, Navigation 3, Room, DataStore, Retrofit/Ktor) with MVVM feature modules, fully native or on top of a Kotlin Multiplatform SDK.",
+      "version": "0.1.0"
+    }
+  ]
+}

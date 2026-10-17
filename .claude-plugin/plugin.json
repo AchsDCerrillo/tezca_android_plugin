@@ -1,0 +1,12 @@
+{
+  "name": "tezca-android-development",
+  "version": "0.1.0",
+  "description": "Native Android development with Google's recommended architecture: set up a multi-module Jetpack Compose app (Hilt, Navigation 3, Room 3, DataStore, Retrofit or Ktor, coroutines/Flow, lifecycle ViewModel, convention plugins, CI/CD) either fully native or on top of a Kotlin Multiplatform SDK, then grow it feature by feature: APIs, Room DAOs, preferences, offline-first repositories, single-responsibility use cases, ViewModels, screens, tests, third-party SDKs and quality audits.",
+  "author": {
+    "name": "AchsDCerrillo",
+    "email": "achscerrillo@gmail.com"
+  },
+  "repository": "https://github.com/AchsDCerrillo/tezca_android_plugin",
+  "license": "MIT",
+  "keywords": ["android", "kotlin", "jetpack-compose", "hilt", "room", "datastore", "retrofit", "ktor", "navigation3", "mvvm", "clean-architecture", "kmp"]
+}

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Window theme only; the UI is themed by AppTheme in :core:ui. -->
+    <style name="Theme.__APP_CLASS__" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>

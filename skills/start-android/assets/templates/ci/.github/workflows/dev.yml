@@ -1,0 +1,44 @@
+# Every push to `dev` ships a dev-flavor release build (dev BASE_URL) to Firebase App Distribution.
+name: Dev distribution
+
+on:
+  push:
+    branches: [dev]
+  workflow_dispatch:
+
+concurrency:
+  group: dev-distribution
+  cancel-in-progress: true
+
+jobs:
+  firebase:
+    name: Android -> Firebase App Distribution
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_KEYSTORE_PATH: ${{ github.workspace }}/release.keystore
+      ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+#@if sdk
+      GPR_USER: ${{ github.actor }}
+      GPR_API_KEY: ${{ secrets.GPR_API_KEY }}
+#@endif
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Decode keystore
+        run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > "$ANDROID_KEYSTORE_PATH"
+      - name: Build dev release APK
+        run: ./gradlew :app:assembleDevRelease -PversionCode=${{ github.run_number }} -PversionName=0.0.${{ github.run_number }}-dev
+      - name: Upload to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_ANDROID_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          groups: ${{ vars.FIREBASE_TESTER_GROUPS }}
+          file: app/build/outputs/apk/dev/release/app-dev-release.apk
+          releaseNotes: ${{ github.event.head_commit.message }}

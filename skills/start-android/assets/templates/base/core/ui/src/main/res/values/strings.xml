@@ -1,0 +1,11 @@
+<resources>
+    <string name="core_ui_loading">Loading</string>
+    <string name="core_ui_retry">Retry</string>
+    <string name="core_ui_error_no_internet">No internet connection. Check your network and try again.</string>
+    <string name="core_ui_error_timeout">The server took too long to respond. Try again.</string>
+    <string name="core_ui_error_unauthorized">Your session expired. Sign in again.</string>
+    <string name="core_ui_error_forbidden">You don\'t have access to this.</string>
+    <string name="core_ui_error_not_found">We couldn\'t find what you were looking for.</string>
+    <string name="core_ui_error_server">Something went wrong on our side. Try again later.</string>
+    <string name="core_ui_error_generic">Something went wrong. Try again.</string>
+</resources>
